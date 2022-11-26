@@ -6,5 +6,26 @@ set(SOURCES
     src/main.cpp
 )
 
+set(LIB_SOURCES
+    src/Lexer.cpp
+)
+
+set(TEST_SOURCES
+    tests/TestLexer.cpp
+)
+
+add_library(libassembler STATIC ${LIB_SOURCES})
+target_include_directories(libassembler PUBLIC include)
+
 add_executable(assembler ${SOURCES})
-target_include_directories(assembler PUBLIC include)
+
+target_link_libraries(assembler PRIVATE libassembler)
+
+if(LCE_ENABLE_TESTS)
+    add_executable(assembler-tests ${TEST_SOURCES})
+    target_link_libraries(assembler-tests libassembler GTest::gtest_main)
+
+    include(GoogleTest)
+    gtest_discover_tests(assembler-tests)
+endif()
+
