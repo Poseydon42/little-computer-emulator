@@ -22,3 +22,4 @@ endif()
 project(lce)
 
 add_subdirectory(assembler)
+add_subdirectory(common)

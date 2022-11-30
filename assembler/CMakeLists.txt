@@ -15,6 +15,7 @@ set(TEST_SOURCES
 )
 
 add_library(libassembler STATIC ${LIB_SOURCES})
+target_link_libraries(libassembler PUBLIC libcommon)
 target_include_directories(libassembler PUBLIC include)
 
 add_executable(assembler ${SOURCES})
