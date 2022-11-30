@@ -3,7 +3,7 @@
 #include <string_view>
 #include <cstddef>
 
-namespace lce::Assembler
+namespace lce::Common
 {
     struct SourceLocation
     {

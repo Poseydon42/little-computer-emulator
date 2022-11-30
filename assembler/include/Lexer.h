@@ -28,7 +28,7 @@ namespace lce::Assembler
         std::string m_FileName;
 
         size_t m_CurrentOffset = 0;
-        SourceLocation m_CurrentLocation;
+        Common::SourceLocation m_CurrentLocation;
 
         Lexem m_CurrentLexem;
 

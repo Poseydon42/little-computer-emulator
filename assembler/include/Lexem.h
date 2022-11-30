@@ -33,7 +33,7 @@ namespace lce::Assembler
     {
         LexemType Type = LexemType::Undefined;
 
-        SourceLocation Location;
+        Common::SourceLocation Location;
 
         std::string_view Text;
 
