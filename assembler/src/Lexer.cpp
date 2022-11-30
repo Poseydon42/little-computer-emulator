@@ -52,6 +52,7 @@ namespace lce::Assembler
         Lexem NewLexem = {};
 
         char Current = PeekChar();
+        bool InsideComment = false;
         while (true)
         {
             if (Current == 0)
@@ -63,9 +64,20 @@ namespace lce::Assembler
                 break;
             }
 
+            if (InsideComment && Current != '\n')
+            {
+                Current = Advance();
+                continue;
+            }
+
             if (IsWhitespace(Current))
             {
                 Current = Advance();
+            }
+
+            if (Current == ';')
+            {
+                InsideComment = true;
             }
 
             if (CanStartIdentifier(Current))

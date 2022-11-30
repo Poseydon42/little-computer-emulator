@@ -78,3 +78,11 @@ TEST(TestLexer, Location)
     EXPECT_EQ(Lexer.Peek().Location.Column, 3);
     EXPECT_EQ(Lexer.Peek().Location.LinearOffset, 5);
 }
+
+TEST(TestLexer, Comments)
+{
+    lce::Assembler::Lexer Lexer("i1; hello 123 \ni2", "test_file.lca");
+
+    EXPECT_EQ(Lexer.Next().Text, "i1");
+    EXPECT_EQ(Lexer.Next().Text, "i2");
+}
