@@ -2,6 +2,7 @@
 
 #include "SourceLocation.h"
 
+#include <string>
 #include <variant>
 #include <unordered_map>
 
