@@ -10,7 +10,7 @@ Little Computer is a 16-bit von Neumann CPU. All of the registers are 16 bits wi
 
 ## Registers
 
-The CPU has 4 general purpose registers called R0 to R7.
+The CPU has 4 general purpose registers called R0 to R3.
 
 Additional registers are:
 * RSP - stack pointer, holds the address of the top of the stack

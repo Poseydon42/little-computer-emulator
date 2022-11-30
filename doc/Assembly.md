@@ -37,8 +37,9 @@ The third byte is only used if one of the operands is an immediate value and in 
 | R2       | 010   |
 | R3       | 011   |
 | RSP      | 100   |
+| RFL      | 101   |
 
-Registers RFL (the flags register) and RIP (the instruction pointer register) do not have corresponding indices as they cannot be changed directly, but rather as a side effect of executing some instructions.
+Register RIP (the instruction pointer register) does not have corresponding index as it cannot be changed directly, but rather as a side effect of executing some instructions.
 
 ## Instruction set
 
@@ -51,7 +52,6 @@ Registers RFL (the flags register) and RIP (the instruction pointer register) do
 | or Rx, Imm/Rx          | Performs bitwise OR on the first and second operand and stores the result in the first operand               |
 | xor Rx, Imm/Rx         | Performs bitwise XOR on the first and second operand and stores the result in the first operand              |
 | not Rx                 | Performs bitwise NOT on the operand and stores the result in the operand                                     |
-| clf                    | Clears the flags register                                                        |
 | push Imm/Rx            | Pushes the value of the operand onto the stack                                                               |
 | pop Rx                 | Pops the value from the stack and stores it in the first operand                                             |
 | jmp Imm/Rx             | Jumps to the address specified in the operand and continues execution from there                             |
@@ -115,58 +115,52 @@ Registers RFL (the flags register) and RIP (the instruction pointer register) do
 |-------------|----------------|----------------|-----------------------|--------|--------|
 | not Rx1     | Rx1 <- NOT Rx1 | Zero           | 1 0 0 0 1 Rx1 Rx1 Rx1 |        |        |
 
-### clf - Clear the flags register
-
-| Instruction | Effect   | Flags affected | Byte 1          | Byte 2 | Byte 3 |
-|-------------|----------|----------------|-----------------|--------|--------|
-| clf         | RFL <- 0 |                | 1 0 0 1 0 x x x |        |        |
-
 ### push - Push a value onto a stack
 
 | Instruction | Effect                       | Flags affected | Byte 1                | Byte 2   | Byte 3    |
 |-------------|------------------------------|----------------|-----------------------|----------|-----------|
-| push Rx1    | [RSP] <- Rx1; RSP <- RSP + 2 |                | 1 0 0 1 1 Rx1 Rx1 Rx1 |          |           |
-| push Imm    | [RSP] <- Imm; RSP <- RSP + 2 |                | 1 0 1 0 0 x x x       | LOW(Imm) | HIGH(Imm) |
+| push Rx1    | [RSP] <- Rx1; RSP <- RSP + 2 |                | 1 0 0 1 0 Rx1 Rx1 Rx1 |          |           |
+| push Imm    | [RSP] <- Imm; RSP <- RSP + 2 |                | 1 0 0 1 1 x x x       | LOW(Imm) | HIGH(Imm) |
 
 ### pop - Pop the value off the stack
 
 | Instruction | Effect   | Flags affected        | Byte 1                | Byte 2 | Byte 3 |
 |-------------|----------|-----------------------|-----------------------|--------|--------|
-| pop Rx1     | Rx1 <- [RSP - 2]; RSP <- RSP - 2 | 1 0 1 0 1 Rx1 Rx1 Rx1 |        |        |
+| pop Rx1     | Rx1 <- [RSP - 2]; RSP <- RSP - 2 | 1 0 1 0 0 Rx1 Rx1 Rx1 |        |        |
 
 ### jmp - Unconditional jump to an address
 
 | Instruction | Effect     | Flags affected | Byte 1                | Byte 2   | Byte 3    |
 |-------------|------------|----------------|-----------------------|----------|-----------|
-| jmp Imm     | RIP <- Imm |                | 1 0 1 1 0 x x x       | LOW(Imm) | HIGH(Imm) |
-| jmp Rx1     | RIP <- Rx1 |                | 1 0 1 1 1 Rx1 Rx1 Rx1 |          |           |
+| jmp Imm     | RIP <- Imm |                | 1 0 1 0 1 x x x       | LOW(Imm) | HIGH(Imm) |
+| jmp Rx1     | RIP <- Rx1 |                | 1 0 1 1 0 Rx1 Rx1 Rx1 |          |           |
 
 ### jz - Jump if zero flag is set
 
 | Instruction | Effect                         | Flags affected | Byte 1                | Byte 2   | Byte 3    |
 |-------------|--------------------------------|----------------|-----------------------|----------|-----------|
-| jz Imm      | if (zero is set) => RIP <- Imm |                | 1 1 0 0 0 x x x       | LOW(Imm) | HIGH(Imm) |
-| jz Rx1      | if (zero is set) => RIP <- Rx1 |                | 1 1 0 0 1 Rx1 Rx1 Rx1 |          |           |
+| jz Imm      | if (zero is set) => RIP <- Imm |                | 1 0 1 1 1 x x x       | LOW(Imm) | HIGH(Imm) |
+| jz Rx1      | if (zero is set) => RIP <- Rx1 |                | 1 1 0 0 0 Rx1 Rx1 Rx1 |          |           |
 
 ### jg - Jump if overflow flag is set
 
 | Instruction | Effect                             | Flags affected | Byte 1                | Byte 2   | Byte 3    |
 |-------------|------------------------------------|----------------|-----------------------|----------|-----------|
-| jz Imm      | if (overflow is set) => RIP <- Imm |                | 1 1 0 1 0 x x x       | LOW(Imm) | HIGH(Imm) |
-| jz Rx1      | if (overflow is set) => RIP <- Rx1 |                | 1 1 0 1 1 Rx1 Rx1 Rx1 |          |           |
+| jz Imm      | if (overflow is set) => RIP <- Imm |                | 1 1 0 0 1 x x x       | LOW(Imm) | HIGH(Imm) |
+| jz Rx1      | if (overflow is set) => RIP <- Rx1 |                | 1 1 0 1 0 Rx1 Rx1 Rx1 |          |           |
 
 ### call - Call a function
 
 | Instruction | Effect                                   | Flags affected | Byte 1                | Byte 2   | Byte 3    |
 |-------------|------------------------------------------|----------------|-----------------------|----------|-----------|
-| call Imm    | [RSP] <- RIP; RSP <- RSP + 2; RIP <- Imm |                | 1 1 1 0 0 x x x       | LOW(Imm) | HIGH(Imm) |
-| call Rx1    | [RSP] <- RIP; RSP <- RSP + 2; RIP <- Rx1 |                | 1 1 1 0 1 Rx1 Rx1 Rx1 |          |           |
+| call Imm    | [RSP] <- RIP; RSP <- RSP + 2; RIP <- Imm |                | 1 1 0 1 1 x x x       | LOW(Imm) | HIGH(Imm) |
+| call Rx1    | [RSP] <- RIP; RSP <- RSP + 2; RIP <- Rx1 |                | 1 1 1 0 0 Rx1 Rx1 Rx1 |          |           |
 
 ### ret - Return from a function
 
 | Instruction | Effect                           | Flags affected | Byte 1          | Byte 2   | Byte 3    |
 |-------------|----------------------------------|----------------|-----------------|----------|-----------|
-| ret         | RIP <- [RSP - 2]; RSP <- RSP - 2 |                | 1 1 1 1 0 x x x |          |           |
+| ret         | RIP <- [RSP - 2]; RSP <- RSP - 2 |                | 1 1 1 0 1 x x x |          |           |
 
 ### hlt - Halt the CPU
 
