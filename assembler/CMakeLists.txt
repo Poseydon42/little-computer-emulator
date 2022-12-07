@@ -8,10 +8,12 @@ set(SOURCES
 
 set(LIB_SOURCES
     src/Lexer.cpp
+    src/Parser.cpp
 )
 
 set(TEST_SOURCES
     tests/TestLexer.cpp
+    tests/TestParser.cpp
 )
 
 add_library(libassembler STATIC ${LIB_SOURCES})
