@@ -1,0 +1,16 @@
+﻿---
+BasedOnStyle: Microsoft
+AllowShortBlocksOnASingleLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'false'
+AlwaysBreakTemplateDeclarations: 'Yes'
+BinPackArguments: 'true'
+BinPackParameters: 'true'
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+ColumnLimit: '0'
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
+NamespaceIndentation: 'All'
+PointerAlignment: Left
+AccessModifierOffset: -4
+Cpp11BracedListStyle: false
+...
