@@ -64,8 +64,12 @@ namespace lce::Assembler
                 break;
             }
 
-            if (InsideComment && Current != '\n')
+            if (InsideComment)
             {
+                if (Current == '\n')
+                {
+                    InsideComment = false;
+                }
                 Current = Advance();
                 continue;
             }
