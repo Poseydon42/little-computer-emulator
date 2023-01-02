@@ -42,7 +42,9 @@ namespace lce::Assembler
         R3 = 0b011,
 
         RSP = 0b100,
-        RFL = 0b101
+        RFL = 0b101,
+
+        Count_ = 0b1000
     };
 
     struct Operand

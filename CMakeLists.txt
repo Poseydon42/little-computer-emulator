@@ -23,3 +23,4 @@ project(lce)
 
 add_subdirectory(assembler)
 add_subdirectory(common)
+add_subdirectory(emulator)
