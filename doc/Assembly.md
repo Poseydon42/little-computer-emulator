@@ -72,7 +72,7 @@ Register RIP (the instruction pointer register) does not have corresponding inde
 | mov Rx1, [Imm]   | Rx1 <- [Imm] |                | 0 0 0 1 1 Rx1 Rx1 Rx1 | LOW(Imm)              | HIGH(Imm) |
 | mov Rx1, [Rx2]   | Rx1 <- [Rx2] |                | 0 0 1 0 0 Rx1 Rx1 Rx1 | Rx2 Rx2 Rx2 x x x x x |           |
 | mov [Imm], Rx1   | [Imm] <- Rx1 |                | 0 0 1 0 1 Rx1 Rx1 Rx1 | LOW(Imm)              | HIGH(Imm) |
-| mov [Rx1], [Rx2] | [Rx1] <- Rx2 |                | 0 0 1 1 0 Rx1 Rx1 Rx1 | Rx2 Rx2 Rx2 x x x x x |           |
+| mov [Rx1], Rx2   | [Rx1] <- Rx2 |                | 0 0 1 1 0 Rx1 Rx1 Rx1 | Rx2 Rx2 Rx2 x x x x x |           |
 
 ### add - Add two values
 
