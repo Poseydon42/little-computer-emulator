@@ -4,6 +4,7 @@ project(emulator CXX)
 
 set(LIB_SOURCES
     src/CPU.cpp
+    src/RandomAccessMemoryBlock.cpp
 )
 
 set(TEST_SOURCES

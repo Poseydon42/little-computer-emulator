@@ -1,13 +1,31 @@
 #include <gtest/gtest.h>
 
+#include <memory>
+
 #include "CPU.h"
+#include "RandomAccessMemoryBlock.h"
 
 using namespace lce::Assembler;
 using namespace lce::Emulator;
 
-TEST(TestCPU, TestReset)
+class TestCPU : public ::testing::Test
 {
+protected:
     CPU CPU;
+    MemoryBlock* Memory = nullptr;
+
+    void SetUp() override
+    {
+        CPU.Reset();
+
+        auto RAM = std::make_unique<RandomAccessMemoryBlock>(16384);
+        Memory = RAM.get();
+        CPU.AddMemoryBlock(std::move(RAM), 0x8000);
+    }
+};
+
+TEST_F(TestCPU, TestReset)
+{
     CPU.Reset();
 
     EXPECT_EQ(CPU.GetRegister(Register::R0), 0);
