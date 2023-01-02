@@ -69,6 +69,9 @@ namespace lce::Emulator
 
         uint16_t GetRegister(Assembler::Register Register) const;
 
+        // NOTE: this should probably be only used in the testing environment
+        void SetRegister(Assembler::Register Register, uint16_t Value);
+
     private:
         using RegisterIndexUnderlyingType = std::underlying_type<Assembler::Register>::type;
         constexpr static size_t RegisterCount = static_cast<RegisterIndexUnderlyingType>(Assembler::Register::Count_);
@@ -84,6 +87,11 @@ namespace lce::Emulator
         void WriteByte(uint16_t AbsoluteAddress, uint8_t Value);
         void WriteWord(uint16_t AbsoluteAddress, uint16_t Value);
 
+        void MovRegReg(std::span<uint8_t> Bytes);
         void MovRegImm(std::span<uint8_t> Bytes);
+        void MovRegImmAddr(std::span<uint8_t> Bytes);
+        void MovRegRegAddr(std::span<uint8_t> Bytes);
+        void MovImmAddrReg(std::span<uint8_t> Bytes);
+        void MovRegAddrReg(std::span<uint8_t> Bytes);
     };
 } // namespace lce::Emulator

@@ -32,6 +32,15 @@ namespace lce::Emulator
         return static_cast<Assembler::Register>(Register);
     }
 
+    static Assembler::Register ExtractReg2(std::span<uint8_t> Bytes)
+    {
+        assert(Bytes.size() >= 2);
+
+        uint8_t Register = Bytes[1] >> 5;
+
+        return static_cast<Assembler::Register>(Register);
+    }
+
     // Returns immediate value that is the argument of the instruction
     static uint16_t ExtractImm(std::span<uint8_t> Bytes)
     {
@@ -56,8 +65,23 @@ namespace lce::Emulator
         auto Opcode = ExtractOpcode(Bytes);
         switch (Opcode)
         {
+        case EncodedOpcode::MovRegReg:
+            MovRegReg(Bytes);
+            break;
         case EncodedOpcode::MovRegImm:
             MovRegImm(Bytes);
+            break;
+        case EncodedOpcode::MovRegImmAddr:
+            MovRegImmAddr(Bytes);
+            break;
+        case EncodedOpcode::MovRegRegAddr:
+            MovRegRegAddr(Bytes);
+            break;
+        case EncodedOpcode::MovImmAddrReg:
+            MovImmAddrReg(Bytes);
+            break;
+        case EncodedOpcode::MovRegAddrReg:
+            MovRegAddrReg(Bytes);
             break;
         default:
             TODO();
@@ -89,6 +113,11 @@ namespace lce::Emulator
     uint16_t CPU::GetRegister(Assembler::Register Register) const
     {
         return Registers[static_cast<RegisterIndexUnderlyingType>(Register)];
+    }
+
+    void CPU::SetRegister(Assembler::Register Register, uint16_t Value)
+    {
+        Registers[static_cast<RegisterIndexUnderlyingType>(Register)] = Value;
     }
 
     MemoryBlock* CPU::FindMemoryBlock(uint16_t AbsoluteAddress, uint16_t& StartAddress) const
@@ -151,12 +180,57 @@ namespace lce::Emulator
         WriteByte(AbsoluteAddress + 1, High);
     }
 
+    void CPU::MovRegReg(std::span<uint8_t> Bytes)
+    {
+        auto Destination = ExtractReg1(Bytes);
+        auto Source = ExtractReg2(Bytes);
+
+        auto Value = GetRegister(Source);
+        SetRegister(Destination, Value);
+    }
+
     void CPU::MovRegImm(std::span<uint8_t> Bytes)
     {
         auto Register = ExtractReg1(Bytes);
         auto Value = ExtractImm(Bytes);
 
-        auto RegisterIndex = static_cast<RegisterIndexUnderlyingType>(Register);
-        Registers[RegisterIndex] = Value;
+        SetRegister(Register, Value);
+    }
+
+    void CPU::MovRegImmAddr(std::span<uint8_t> Bytes)
+    {
+        auto Register = ExtractReg1(Bytes);
+        auto Address = ExtractImm(Bytes);
+
+        auto Value = ReadWord(Address);
+        SetRegister(Register, Value);
+    }
+
+    void CPU::MovRegRegAddr(std::span<uint8_t> Bytes)
+    {
+        auto Destination = ExtractReg1(Bytes);
+        auto Source = ExtractReg2(Bytes);
+
+        auto Value = ReadWord(GetRegister(Source));
+        SetRegister(Destination, Value);
+    }
+
+    void CPU::MovImmAddrReg(std::span<uint8_t> Bytes)
+    {
+        auto Source = ExtractReg1(Bytes);
+        auto Destination = ExtractImm(Bytes);
+
+        auto Value = GetRegister(Source);
+        WriteWord(Destination, Value);
+    }
+
+    void CPU::MovRegAddrReg(std::span<uint8_t> Bytes)
+    {
+        auto Destination = ExtractReg1(Bytes);
+        auto Source = ExtractReg2(Bytes);
+
+        auto Value = GetRegister(Source);
+        auto Address = GetRegister(Destination);
+        WriteWord(Address, Value);
     }
 } // namespace lce::Emulator
