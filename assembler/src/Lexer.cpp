@@ -30,7 +30,8 @@ namespace lce::Assembler
     {
         // Technically \0 is not a whitespace character but I've decided to include it here
         // because it makes the lexing code shorter and easier to understand
-        constexpr char WhitespaceCharacters[] = {'\0', ' ', '\t', '\n', '\r'};
+        // Also note that line break (\n) is not included here because it is considered to be a separate lexem
+        constexpr char WhitespaceCharacters[] = { '\0', ' ', '\t', '\r' };
         return std::ranges::find(WhitespaceCharacters, Value) != std::end(WhitespaceCharacters);
     }
 
@@ -53,7 +54,7 @@ namespace lce::Assembler
         Next(); // Parse the first lexem
     }
 
-    const Lexem &Lexer::Peek() const
+    const Lexem& Lexer::Peek() const
     {
         return m_CurrentLexem;
     }
@@ -77,12 +78,17 @@ namespace lce::Assembler
                 break;
             }
 
+            if (Current == '\n')
+            {
+                InsideComment = false;
+                NewLexem = { LexemType::LineBreak, m_CurrentLocation, "\n", {} };
+                Current = Advance();
+
+                break;
+            }
+
             if (InsideComment)
             {
-                if (Current == '\n')
-                {
-                    InsideComment = false;
-                }
                 Current = Advance();
                 continue;
             }

@@ -11,6 +11,7 @@ namespace lce::Assembler
 #define ENUMERATE_LEXEM_TYPES(Func)             \
     Func(Undefined)                             \
     Func(EndOfFile)                             \
+    Func(LineBreak)                             \
     Func(Identifier)                            \
     Func(NumericLiteral)                        \
     Func(Comma)                                 \

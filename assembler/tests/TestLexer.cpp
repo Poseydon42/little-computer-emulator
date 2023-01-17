@@ -4,9 +4,18 @@
 
 TEST(TestLexer, IgnoreWhitespaces)
 {
-    lce::Assembler::Lexer Lexer("\t    \t\n\r\n  ", "test_file.lca");
+    lce::Assembler::Lexer Lexer("\t    \t\r  ", "test_file.lca");
 
     EXPECT_EQ(Lexer.Peek().Type, lce::Assembler::LexemType::EndOfFile);
+}
+
+TEST(TestLexer, NewLine)
+{
+    lce::Assembler::Lexer Lexer("\n  \n", "test_file.lca");
+
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::LineBreak);
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::LineBreak);
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::EndOfFile);
 }
 
 TEST(TestLexer, IdentifierBasics)
@@ -81,6 +90,7 @@ TEST(TestLexer, Location)
     EXPECT_EQ(Lexer.Peek().Location.Column, 1);
     EXPECT_EQ(Lexer.Peek().Location.LinearOffset, 0);
     Lexer.Next();
+    Lexer.Next(); // Skipping the line break
 
     EXPECT_EQ(Lexer.Peek().Location.Line, 2);
     EXPECT_EQ(Lexer.Peek().Location.Column, 3);
@@ -92,5 +102,6 @@ TEST(TestLexer, Comments)
     lce::Assembler::Lexer Lexer("i1; hello 123 \ni2", "test_file.lca");
 
     EXPECT_EQ(Lexer.Next().Text, "i1");
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::LineBreak);
     EXPECT_EQ(Lexer.Next().Text, "i2");
 }
