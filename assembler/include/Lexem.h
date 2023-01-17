@@ -8,12 +8,14 @@
 
 namespace lce::Assembler
 {
-#define ENUMERATE_LEXEM_TYPES(Func) \
-    Func(Undefined) \
-    Func(EndOfFile) \
-    Func(Identifier) \
-    Func(NumericLiteral) \
-    Func(Comma)
+#define ENUMERATE_LEXEM_TYPES(Func)             \
+    Func(Undefined)                             \
+    Func(EndOfFile)                             \
+    Func(Identifier)                            \
+    Func(NumericLiteral)                        \
+    Func(Comma)                                 \
+    Func(LeftSquareBracket)                     \
+    Func(RightSquareBracket)
 
     enum class LexemType
     {

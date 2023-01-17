@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <optional>
 
 namespace lce::Assembler
 {
@@ -31,6 +32,18 @@ namespace lce::Assembler
         // because it makes the lexing code shorter and easier to understand
         constexpr char WhitespaceCharacters[] = {'\0', ' ', '\t', '\n', '\r'};
         return std::ranges::find(WhitespaceCharacters, Value) != std::end(WhitespaceCharacters);
+    }
+
+    static std::optional<LexemType> TryParseSingleCharLexem(char Value)
+    {
+        static const std::unordered_map<char, LexemType> SingleCharLexems = {
+            { ',', LexemType::Comma },
+            { '[', LexemType::LeftSquareBracket },
+            { ']', LexemType::RightSquareBracket }
+        };
+        if (!SingleCharLexems.contains(Value))
+            return std::nullopt;
+        return SingleCharLexems.at(Value);
     }
 
     Lexer::Lexer(std::string_view Source, std::string FileName)
@@ -120,9 +133,9 @@ namespace lce::Assembler
                 break;
             }
 
-            if (Current == ',')
+            if (auto MaybeSingleCharLexem = TryParseSingleCharLexem(Current); MaybeSingleCharLexem.has_value())
             {
-                NewLexem.Type = LexemType::Comma;
+                NewLexem.Type = MaybeSingleCharLexem.value();
                 NewLexem.Location = m_CurrentLocation;
                 NewLexem.Text = std::string_view(m_Source.data() + m_CurrentOffset, 1);
 

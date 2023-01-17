@@ -64,6 +64,14 @@ TEST(TestLexer, Commas)
     EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::Comma);
 }
 
+TEST(TestLexer, SquareBrackets)
+{
+    lce::Assembler::Lexer Lexer("[]", "test_file.lca");
+
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::LeftSquareBracket);
+    EXPECT_EQ(Lexer.Next().Type, lce::Assembler::LexemType::RightSquareBracket);
+}
+
 TEST(TestLexer, Location)
 {
     lce::Assembler::Lexer Lexer("i1\n  i2", "test_file.lca");
