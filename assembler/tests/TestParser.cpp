@@ -41,3 +41,12 @@ TEST(TestParser, ParseMultipleMov)
         EXPECT_EQ(std::get<uint64_t>(Instructions[Index].Operands[1].Value), Index);
     }
 }
+
+TEST(TestParser, ParseWithEmptyLines)
+{
+    lce::Assembler::Lexer Lexer("\n\n mov r0, 42 \n\n\n", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    EXPECT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    EXPECT_EQ(Instructions.size(), 1);
+}

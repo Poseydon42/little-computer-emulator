@@ -1,14 +1,18 @@
 #include "Parser.h"
 
+#include <array>
 #include <algorithm>
 #include <cassert>
 #include <optional>
+#include <span>
 
 #include "ErrorReporting.h"
+#include "Instruction.h"
+#include "Lexem.h"
 
 namespace lce::Assembler
 {
-    std::optional<Register> GetRegisterFromText(const Lexem& Lexem)
+    static std::optional<Register> GetRegisterFromText(const Lexem& Lexem)
     {
         const static std::unordered_map<std::string, Register> RegisterNameDictionary = {
             { "r0", Register::R0 },
@@ -33,62 +37,6 @@ namespace lce::Assembler
         return RegisterNameDictionary.at(LexemText);
     }
 
-    // NOTE: all *Parser functions assume that the current lexem in the lexem is the lexem that contains opcode of the instruction
-    std::optional<Instruction> MovParser(Lexer& Lexer)
-    {
-        Instruction Result = {};
-        Result.Opcode = Opcode::Mov;
-
-        auto InstructionLine = Lexer.Peek().Location.Line;
-
-        // Skipping the opcode instruction
-        Lexer.Pop();
-
-        // First operand
-        if (Lexer.Peek().Location.Line != InstructionLine)
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "could not parse the first argument of 'mov' instruction: new line detected");
-            return {};
-        }
-
-        // FIXME: mov [Imm], xxx
-        // NOTE: currently we are assuming that the first argument is a register
-        if (Lexer.Peek().Type != LexemType::Identifier || !GetRegisterFromText(Lexer.Peek()).has_value())
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "the first argument of 'mov' instruction must be a register");
-            return {};
-        }
-        Result.Operands[0] = { OperandType::Register, GetRegisterFromText(Lexer.Pop()).value() };
-
-        // Second operand
-        if (Lexer.Peek().Type != LexemType::Comma)
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "expected comma after the first argument, got {}", LexemTypeAsString.at(Lexer.Peek().Type));
-            return {};
-        }
-        if (Lexer.Peek().Location.Line != InstructionLine)
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "could not parse second argument of 'mov' instruction: new line detected");
-            return {};
-        }
-        Lexer.Pop();
-
-        // FIXME: at the moment we can only parse immediate value as the second argument
-        if (Lexer.Peek().Location.Line != InstructionLine)
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "could not parse second argument of 'mov' instruction: new line detected");
-            return {};
-        }
-        if (Lexer.Peek().Type != LexemType::NumericLiteral)
-        {
-            Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "expected numerical literal as the second argument of 'mov', got {}", LexemTypeAsString.at(Lexer.Peek().Type));
-            return {};
-        }
-        Result.Operands[1] = { OperandType::Immediate, std::get<uint64_t>(Lexer.Pop().ParsedValue) };
-
-        return Result;
-    }
-
     static std::optional<Opcode> DetectOpcode(const Lexem& IdentifierLexem)
     {
         if (IdentifierLexem.Type != LexemType::Identifier)
@@ -109,49 +57,132 @@ namespace lce::Assembler
         return TextToOpcodeMap.at(LexemText);
     }
 
-    using InstructionParserFunctionType = std::optional<Instruction> (*)(Lexer& Lexer);
-
-    static std::optional<InstructionParserFunctionType> GetParserForInstructionOpcode(Opcode Opcode)
+    static size_t GetNumberOfOperandsForOpcode(Opcode InOpcode)
     {
-        const static std::unordered_map<enum Opcode, InstructionParserFunctionType> ParserDictionary = {
-            { Opcode::Mov, MovParser }
+        static std::unordered_map<Opcode, size_t> NumberOfOperands = {
+            { Opcode::Mov, 2 }
         };
-        if (!ParserDictionary.contains(Opcode))
-            return {};
-        return ParserDictionary.at(Opcode);
+
+        if (!NumberOfOperands.contains(InOpcode))
+        {
+            return 0;
+        }
+        return NumberOfOperands.at(InOpcode);
     }
 
-    static std::optional<Instruction> ParseNextInstruction(Lexer& Lexer)
+    static std::optional<Operand> ParseOperand(std::span<Lexem> Lexems)
     {
-        auto InstructionLine = Lexer.Peek().Location.Line;
+        if (Lexems.empty())
+            return {};
 
-        auto OpcodeLexem = Lexer.Peek();
-        auto Opcode = DetectOpcode(OpcodeLexem);
-        if (!Opcode.has_value())
+        // OperandType::Register
+        if (Lexems[0].Type == LexemType::Identifier)
+        {
+            auto MaybeRegister = GetRegisterFromText(Lexems[0]);
+            if (!MaybeRegister.has_value())
+                return {};
+            return Operand{ OperandType::Register, MaybeRegister.value() };
+        }
+
+        // OperandType::Immediate
+        if (Lexems[0].Type == LexemType::NumericLiteral)
+        {
+            return Operand{ OperandType::Immediate, std::get<uint64_t>(Lexems[0].ParsedValue) };
+        }
+
+        // OperandType::ImmediateAddress/OperandType::RegisterAddress
+        if (Lexems[0].Type == LexemType::LeftSquareBracket)
+        {
+            if (Lexems.size() <= 1)
+            {
+                Common::ReportError(Common::ErrorSeverity::Error, Lexems[0].Location, "expected address or register after the left square bracket");
+                return {};
+            }
+            if (Lexems.size() <= 2 || Lexems[2].Type != LexemType::RightSquareBracket)
+            {
+                Common::ReportError(Common::ErrorSeverity::Error, Lexems[1].Location, "expected right square bracket");
+                return {};
+            }
+
+            // OperandType::RegisterAddress
+            if (Lexems[1].Type == LexemType::Identifier)
+            {
+                auto MaybeRegister = GetRegisterFromText(Lexems[1]);
+                if (!MaybeRegister.has_value())
+                    return {};
+                return Operand{ OperandType::RegisterAddress, MaybeRegister.value() };
+            }
+
+            // OperandType::ImmediateAddress
+            if (Lexems[1].Type == LexemType::NumericLiteral)
+            {
+                return Operand{ OperandType::Immediate, std::get<uint64_t>(Lexems[0].ParsedValue) };
+            }
+        }
+        return {};
+    }
+
+    std::optional<Instruction> ParseInstruction(std::span<Lexem> Lexems)
+    {
+        Instruction Result = {};
+
+        auto OpcodeLexem = Lexems[0];
+        auto MaybeOpcode = DetectOpcode(OpcodeLexem);
+        if (!MaybeOpcode.has_value())
         {
             Common::ReportError(Common::ErrorSeverity::Error, OpcodeLexem.Location, "unknown or unimplemented instruction '{}'", OpcodeLexem.Text);
             return {};
         }
-        auto OpcodeParser = GetParserForInstructionOpcode(Opcode.value());
-        if (!OpcodeParser.has_value())
-        {
-            Common::ReportError(Common::ErrorSeverity::Fatal, OpcodeLexem.Location, "cannot find parser for opcode");
-            return {};
-        }
+        auto Opcode = MaybeOpcode.value();
 
-        auto ParsedInstruction = OpcodeParser.value()(Lexer);
-        if (Lexer.Peek().Location.Line == InstructionLine && Lexer.Peek().Type != lce::Assembler::LexemType::EndOfFile)
+        Result.Opcode = Opcode;
+
+        size_t OnePastLastLexemOfFirstOperand = -1;
+        
+        auto NumberOfOperands = GetNumberOfOperandsForOpcode(Opcode);
+        if (NumberOfOperands == 2)
         {
-            // NOTE: do not emit warning about ignored text if the instruction parsing failed because it might have been
-            //       caused by the fact that instruction parser returned in the middle of the line
-            if (ParsedInstruction.has_value())
+            // FIXME: this assumes that commas are not allowed inside the argument itself, and while it is true at the moment this might change in the
+            //        future if we'd add support for complex mathematical expressions or macros
+            auto CommaLexem = std::ranges::find_if(Lexems, [](const auto& Element) { return Element.Type == LexemType::Comma; });
+            if (CommaLexem == Lexems.end())
             {
-                Common::ReportError(Common::ErrorSeverity::Warning, Lexer.Peek().Location, "any text after the instruction in the current line will be ignored");
+                Common::ReportError(Common::ErrorSeverity::Error, (CommaLexem - 1)->Location, "expected two arguments for opcode");
+                return {};
             }
-            while (Lexer.Pop().Location.Line == InstructionLine && Lexer.Peek().Type != lce::Assembler::LexemType::EndOfFile) {}
+
+            OnePastLastLexemOfFirstOperand = std::distance(Lexems.begin(), CommaLexem);
+        }
+        else if (NumberOfOperands == 1)
+        {
+            OnePastLastLexemOfFirstOperand = Lexems.size();
         }
 
-        return ParsedInstruction;
+        if (NumberOfOperands > 0)
+        {
+            auto FirstOperandLexems = std::span<Lexem>(Lexems.begin() + 1, Lexems.begin() + OnePastLastLexemOfFirstOperand);
+            auto MaybeFirstOperand = ParseOperand(FirstOperandLexems);
+            if (!MaybeFirstOperand.has_value())
+            {
+                return {};
+            }
+
+            Result.Operands[0] = MaybeFirstOperand.value();
+        }
+
+        if (NumberOfOperands > 1)
+        {
+            auto SecondOperandLexems = std::span<Lexem>(Lexems.begin() + OnePastLastLexemOfFirstOperand + 1, Lexems.end());
+            auto MaybeSecondOperand = ParseOperand(SecondOperandLexems);
+            if (!MaybeSecondOperand.has_value())
+            {
+                return {};
+            }
+
+            Result.Operands[1] = MaybeSecondOperand.value();
+        }
+
+        return Result;
     }
 
     bool Parse(Lexer& Lexer, std::vector<Instruction>& Destination)
@@ -160,15 +191,27 @@ namespace lce::Assembler
 
         while (Lexer.Peek().Type != LexemType::EndOfFile)
         {
-            auto Instruction = ParseNextInstruction(Lexer);
-            if (!Instruction.has_value())
+            std::vector<Lexem> LexemsInCurrentLine;
+            while (Lexer.Peek().Type != LexemType::LineBreak && Lexer.Peek().Type != LexemType::EndOfFile)
+            {
+                LexemsInCurrentLine.push_back(Lexer.Pop());
+            }
+            Lexer.Pop(); // Popping the line break lexem
+
+            if (LexemsInCurrentLine.empty())
+                continue;
+
+            auto MaybeInstruction = ParseInstruction(LexemsInCurrentLine);
+
+            if (!MaybeInstruction.has_value())
             {
                 Success = false;
+                continue;
             }
-            else
-            {
-                Destination.push_back(Instruction.value());
-            }
+
+            auto Instruction = MaybeInstruction.value();
+
+            Destination.push_back(Instruction);
         }
         return Success;
     }
