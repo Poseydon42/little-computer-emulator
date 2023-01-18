@@ -13,14 +13,14 @@ namespace lce::Assembler
         Lexer(std::string_view Source, std::string FileName);
 
         /*
-         * Returns the next lexem in the source stream
+         * Returns the current lexem in the source stream
          */
         const Lexem& Peek() const;
 
         /*
-         * Returns the next lexem in the source stream and shifts to the next lexem
+         * Returns the current lexem in the source stream and shifts to the next lexem
          */
-        Lexem Next();
+        Lexem Pop();
 
     private:
         std::string_view m_Source;

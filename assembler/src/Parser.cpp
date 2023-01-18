@@ -42,7 +42,7 @@ namespace lce::Assembler
         auto InstructionLine = Lexer.Peek().Location.Line;
 
         // Skipping the opcode instruction
-        Lexer.Next();
+        Lexer.Pop();
 
         // First operand
         if (Lexer.Peek().Location.Line != InstructionLine)
@@ -58,7 +58,7 @@ namespace lce::Assembler
             Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "the first argument of 'mov' instruction must be a register");
             return {};
         }
-        Result.Operands[0] = { OperandType::Register, GetRegisterFromText(Lexer.Next()).value() };
+        Result.Operands[0] = { OperandType::Register, GetRegisterFromText(Lexer.Pop()).value() };
 
         // Second operand
         if (Lexer.Peek().Type != LexemType::Comma)
@@ -71,7 +71,7 @@ namespace lce::Assembler
             Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "could not parse second argument of 'mov' instruction: new line detected");
             return {};
         }
-        Lexer.Next();
+        Lexer.Pop();
 
         // FIXME: at the moment we can only parse immediate value as the second argument
         if (Lexer.Peek().Location.Line != InstructionLine)
@@ -84,7 +84,7 @@ namespace lce::Assembler
             Common::ReportError(Common::ErrorSeverity::Error, Lexer.Peek().Location, "expected numerical literal as the second argument of 'mov', got {}", LexemTypeAsString.at(Lexer.Peek().Type));
             return {};
         }
-        Result.Operands[1] = { OperandType::Immediate, std::get<uint64_t>(Lexer.Next().ParsedValue) };
+        Result.Operands[1] = { OperandType::Immediate, std::get<uint64_t>(Lexer.Pop().ParsedValue) };
 
         return Result;
     }
@@ -148,7 +148,7 @@ namespace lce::Assembler
             {
                 Common::ReportError(Common::ErrorSeverity::Warning, Lexer.Peek().Location, "any text after the instruction in the current line will be ignored");
             }
-            while (Lexer.Next().Location.Line == InstructionLine && Lexer.Peek().Type != lce::Assembler::LexemType::EndOfFile) {}
+            while (Lexer.Pop().Location.Line == InstructionLine && Lexer.Peek().Type != lce::Assembler::LexemType::EndOfFile) {}
         }
 
         return ParsedInstruction;

@@ -51,7 +51,7 @@ namespace lce::Assembler
         : m_Source(Source), m_FileName(std::move(FileName))
     {
         m_CurrentLocation.FileName = m_FileName;
-        Next(); // Parse the first lexem
+        Pop(); // Parse the first lexem
     }
 
     const Lexem& Lexer::Peek() const
@@ -59,7 +59,7 @@ namespace lce::Assembler
         return m_CurrentLexem;
     }
 
-    Lexem Lexer::Next()
+    Lexem Lexer::Pop()
     {
         Lexem Result = m_CurrentLexem;
 
