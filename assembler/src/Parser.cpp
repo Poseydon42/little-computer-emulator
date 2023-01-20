@@ -47,6 +47,20 @@ namespace lce::Assembler
 
         const static std::unordered_map<std::string, Opcode> TextToOpcodeMap = {
             { "mov", Opcode::Mov },
+            { "add", Opcode::Add },
+            { "sub", Opcode::Sub },
+            { "and", Opcode::And },
+            { "or", Opcode::Or },
+            { "xor", Opcode::Xor },
+            { "not", Opcode::Not },
+            { "push", Opcode::Push },
+            { "pop", Opcode::Pop },
+            { "jmp", Opcode::Jmp },
+            { "jz", Opcode::Jz },
+            { "jg", Opcode::Jg },
+            { "call", Opcode::Call },
+            { "ret", Opcode::Ret },
+            { "hlt", Opcode::Hlt }
         };
 
         if (!TextToOpcodeMap.contains(LexemText))
@@ -60,7 +74,21 @@ namespace lce::Assembler
     static size_t GetNumberOfOperandsForOpcode(Opcode InOpcode)
     {
         static std::unordered_map<Opcode, size_t> NumberOfOperands = {
-            { Opcode::Mov, 2 }
+            { Opcode::Mov, 2 },
+            { Opcode::Add, 2 },
+            { Opcode::Sub, 2 },
+            { Opcode::And, 2 },
+            { Opcode::Or, 2 },
+            { Opcode::Xor, 2 },
+            { Opcode::Not, 1 },
+            { Opcode::Push, 1 },
+            { Opcode::Pop, 1 },
+            { Opcode::Jmp, 1 },
+            { Opcode::Jz, 1 },
+            { Opcode::Jg, 1 },
+            { Opcode::Call, 1 },
+            { Opcode::Ret, 0 },
+            { Opcode::Hlt, 0 }
         };
 
         if (!NumberOfOperands.contains(InOpcode))
@@ -116,7 +144,7 @@ namespace lce::Assembler
             // OperandType::ImmediateAddress
             if (Lexems[1].Type == LexemType::NumericLiteral)
             {
-                return Operand{ OperandType::Immediate, std::get<uint64_t>(Lexems[0].ParsedValue) };
+                return Operand{ OperandType::ImmediateAddress, std::get<uint64_t>(Lexems[1].ParsedValue) };
             }
         }
         return {};

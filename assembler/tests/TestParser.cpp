@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "Instruction.h"
 #include "Lexer.h"
 #include "Parser.h"
 
@@ -49,4 +50,91 @@ TEST(TestParser, ParseWithEmptyLines)
 
     EXPECT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
     EXPECT_EQ(Instructions.size(), 1);
+}
+
+TEST(TestParser, ParseInstructionWithNoArguments)
+{
+    lce::Assembler::Lexer Lexer("\nhlt", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Hlt);
+    EXPECT_EQ(Instructions[0].Operands[0].Type, lce::Assembler::OperandType::None);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::None);
+}
+
+TEST(TestParser, ParseInstructionWithOneArgument)
+{
+    lce::Assembler::Lexer Lexer("\npush r0", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Push);
+    EXPECT_EQ(Instructions[0].Operands[0].Type, lce::Assembler::OperandType::Register);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::None);
+}
+
+TEST(TestParser, ParseInstructionWithTwoArguments)
+{
+    lce::Assembler::Lexer Lexer("\nadd r0, 137", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Add);
+    EXPECT_EQ(Instructions[0].Operands[0].Type, lce::Assembler::OperandType::Register);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::Immediate);
+}
+
+TEST(TestParser, ParseImmediate)
+{
+    lce::Assembler::Lexer Lexer("\nmov r0, 17", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::Immediate);
+}
+
+TEST(TestParser, ParseRegister)
+{
+    lce::Assembler::Lexer Lexer("\nmov r0, r1", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::Register);
+}
+
+TEST(TestParser, ParseImmediateAddress)
+{
+    lce::Assembler::Lexer Lexer("\nmov r0, [137]", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::ImmediateAddress);
+}
+
+TEST(TestParser, ParseRegisterAddress)
+{
+    lce::Assembler::Lexer Lexer("\nmov r0, [r1]", "test_file.lca");
+    std::vector<lce::Assembler::Instruction> Instructions;
+
+    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
+    ASSERT_EQ(Instructions.size(), 1);
+
+    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
+    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::RegisterAddress);
 }
