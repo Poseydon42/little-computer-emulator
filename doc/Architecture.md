@@ -17,6 +17,18 @@ Additional registers are:
 * RFL - flags register (read only for general purpose instructions, but individual bits can be changed as the result of executing an instruciton)
 * RIP - instruction pointer registers, holds the address of the next instruction to be executed
 
+## Flags
+
+CPU flags are stored in the RFL register. They can be altered directly or as a side effect of some instruction. They can be used as a condition in branch instructions.
+
+RFL register bits (0 to 15):
+
+* Z - Zero flag. Set when the result of the previous operation was 0.
+* N - Negative flag. Set when the result of the previous operation had the highest bit set.
+* C - Carry flag. Set when the previous operation had caused a carry.
+* V - Overflow flag. Set when the previous operation had caused an arithmetic overflow.
+* The rest of the flags are reserved for future or internal use; their state is undefined and they must not be changed by any code that is executed on the CPU
+
 ## Memory
 
 The CPU uses a flat memory model and peripheral devices can be mapped into the same memory address space as the RAM and ROM. The computer has 32 KiB ROM, 16 KiB of RAM and the remaining 16 KiB can be used for mapped I/O. The total address space therefore is 64 KiB.
@@ -27,7 +39,7 @@ The CPU uses a flat memory model and peripheral devices can be mapped into the s
 | 0x8000 - 0xBFFF | 16 KiB | RAM                 |
 | 0xC000 - 0xFFFF | 16 KiB | I/O mappable memory |
 
-The stack starts at 0x8000 and grows from low addresses to large addresses.
+The stack starts at 0x8000 and grows from low addresses to high addresses.
 
 The CPU starts executing the program from address 0x7FF0.
 
