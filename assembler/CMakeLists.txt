@@ -10,12 +10,14 @@ set(LIB_SOURCES
     src/CodeGenerator.cpp
     src/Lexer.cpp
     src/Parser.cpp
+    src/TypeChecker.cpp
 )
 
 set(TEST_SOURCES
     tests/TestCodeGenerator.cpp
     tests/TestLexer.cpp
     tests/TestParser.cpp
+    tests/TestTypeChecker.cpp
 )
 
 add_library(libassembler STATIC ${LIB_SOURCES})

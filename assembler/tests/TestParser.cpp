@@ -114,27 +114,3 @@ TEST(TestParser, ParseRegister)
     EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
     EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::Register);
 }
-
-TEST(TestParser, ParseImmediateAddress)
-{
-    lce::Assembler::Lexer Lexer("\nmov r0, [137]", "test_file.lca");
-    std::vector<lce::Assembler::Instruction> Instructions;
-
-    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
-    ASSERT_EQ(Instructions.size(), 1);
-
-    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
-    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::ImmediateAddress);
-}
-
-TEST(TestParser, ParseRegisterAddress)
-{
-    lce::Assembler::Lexer Lexer("\nmov r0, [r1]", "test_file.lca");
-    std::vector<lce::Assembler::Instruction> Instructions;
-
-    ASSERT_TRUE(lce::Assembler::Parse(Lexer, Instructions));
-    ASSERT_EQ(Instructions.size(), 1);
-
-    EXPECT_EQ(Instructions[0].Opcode, lce::Assembler::Opcode::Mov);
-    EXPECT_EQ(Instructions[0].Operands[1].Type, lce::Assembler::OperandType::RegisterAddress);
-}

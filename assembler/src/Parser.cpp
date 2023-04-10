@@ -47,19 +47,26 @@ namespace lce::Assembler
 
         const static std::unordered_map<std::string, Opcode> TextToOpcodeMap = {
             { "mov", Opcode::Mov },
+            { "lda", Opcode::Lda },
+            { "sta", Opcode::Sta },
             { "add", Opcode::Add },
             { "sub", Opcode::Sub },
             { "and", Opcode::And },
             { "or", Opcode::Or },
             { "xor", Opcode::Xor },
             { "not", Opcode::Not },
+            { "shl", Opcode::Shl },
+            { "shr", Opcode::Shr },
             { "push", Opcode::Push },
             { "pop", Opcode::Pop },
             { "jmp", Opcode::Jmp },
             { "jz", Opcode::Jz },
-            { "jg", Opcode::Jg },
+            { "jv", Opcode::Jv },
+            { "jc", Opcode::Jc },
+            { "jn", Opcode::Jn },
             { "call", Opcode::Call },
             { "ret", Opcode::Ret },
+            { "nop", Opcode::Nop },
             { "hlt", Opcode::Hlt }
         };
 
@@ -75,19 +82,26 @@ namespace lce::Assembler
     {
         static std::unordered_map<Opcode, size_t> NumberOfOperands = {
             { Opcode::Mov, 2 },
+            { Opcode::Lda, 2 },
+            { Opcode::Sta, 2 },
             { Opcode::Add, 2 },
             { Opcode::Sub, 2 },
             { Opcode::And, 2 },
             { Opcode::Or, 2 },
             { Opcode::Xor, 2 },
             { Opcode::Not, 1 },
+            { Opcode::Shl, 2 },
+            { Opcode::Shr, 2 },
             { Opcode::Push, 1 },
             { Opcode::Pop, 1 },
             { Opcode::Jmp, 1 },
             { Opcode::Jz, 1 },
-            { Opcode::Jg, 1 },
+            { Opcode::Jv, 1 },
+            { Opcode::Jc, 1 },
+            { Opcode::Jn, 1 },
             { Opcode::Call, 1 },
             { Opcode::Ret, 0 },
+            { Opcode::Nop, 0 },
             { Opcode::Hlt, 0 }
         };
 
@@ -118,35 +132,6 @@ namespace lce::Assembler
             return Operand{ OperandType::Immediate, std::get<uint64_t>(Lexems[0].ParsedValue) };
         }
 
-        // OperandType::ImmediateAddress/OperandType::RegisterAddress
-        if (Lexems[0].Type == LexemType::LeftSquareBracket)
-        {
-            if (Lexems.size() <= 1)
-            {
-                Common::ReportError(Common::ErrorSeverity::Error, Lexems[0].Location, "expected address or register after the left square bracket");
-                return {};
-            }
-            if (Lexems.size() <= 2 || Lexems[2].Type != LexemType::RightSquareBracket)
-            {
-                Common::ReportError(Common::ErrorSeverity::Error, Lexems[1].Location, "expected right square bracket");
-                return {};
-            }
-
-            // OperandType::RegisterAddress
-            if (Lexems[1].Type == LexemType::Identifier)
-            {
-                auto MaybeRegister = GetRegisterFromText(Lexems[1]);
-                if (!MaybeRegister.has_value())
-                    return {};
-                return Operand{ OperandType::RegisterAddress, MaybeRegister.value() };
-            }
-
-            // OperandType::ImmediateAddress
-            if (Lexems[1].Type == LexemType::NumericLiteral)
-            {
-                return Operand{ OperandType::ImmediateAddress, std::get<uint64_t>(Lexems[1].ParsedValue) };
-            }
-        }
         return {};
     }
 
@@ -164,6 +149,7 @@ namespace lce::Assembler
         auto Opcode = MaybeOpcode.value();
 
         Result.Opcode = Opcode;
+        Result.Location = OpcodeLexem.Location;
 
         size_t OnePastLastLexemOfFirstOperand = -1;
         

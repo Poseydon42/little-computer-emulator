@@ -3,24 +3,33 @@
 #include <cstdint>
 #include <variant>
 
+#include "SourceLocation.h"
+
 namespace lce::Assembler
 {
     enum class Opcode
     {
         Mov,
+        Lda,
+        Sta,
         Add,
         Sub,
         And,
         Or,
         Xor,
         Not,
+        Shl,
+        Shr,
         Push,
         Pop,
         Jmp,
         Jz,
-        Jg,
+        Jv,
+        Jc,
+        Jn,
         Call,
         Ret,
+        Nop,
         Hlt
     };
 
@@ -30,8 +39,6 @@ namespace lce::Assembler
 
         Immediate,
         Register,
-        ImmediateAddress,
-        RegisterAddress
     };
 
     enum class Register : uint8_t
@@ -58,5 +65,7 @@ namespace lce::Assembler
         Opcode Opcode = Opcode::Hlt;
 
         Operand Operands[2];
+
+        Common::SourceLocation Location;
     };
 } // namespace lce::Assembler
