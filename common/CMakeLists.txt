@@ -9,6 +9,8 @@ FetchContent_Declare(fmt
 )
 FetchContent_MakeAvailable(fmt)
 
+add_subdirectory(thirdparty/cxxopts)
+
 set(SOURCES
     src/ErrorReporting.cpp
 )
@@ -16,4 +18,4 @@ set(SOURCES
 add_library(libcommon STATIC ${SOURCES})
 
 target_include_directories(libcommon PUBLIC include)
-target_link_libraries(libcommon PUBLIC fmt)
+target_link_libraries(libcommon PUBLIC cxxopts fmt)

@@ -1,0 +1,4 @@
+[submodule "common/thirdparty/cxxopts"]
+	path = common/thirdparty/cxxopts
+	url = https://github.com/jarro2783/cxxopts.git
+	branch = v2_2
