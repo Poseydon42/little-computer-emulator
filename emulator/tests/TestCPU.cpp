@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "CPU.h"
+#include "Instruction.h"
 #include "RandomAccessMemoryBlock.h"
 
 using namespace lce::Assembler;
@@ -36,66 +37,27 @@ TEST_F(TestCPU, TestReset)
     EXPECT_EQ(CPU.GetRegister(Register::RFL), 0);
 }
 
-TEST_F(TestCPU, TestMOVRegReg)
+TEST_F(TestCPU, TestMovRegReg)
 {
-    CPU.SetRegister(Register::R0, 0xABCD);
+    uint8_t Instruction[] = { 0b00000100, 0b00010001 }; // mov r2, r1
 
-    uint8_t Instruction[] = { 0b00001001, 0b00000000 }; // mov R1, R0
+    CPU.SetRegister(Register::R1, 0xFACE);
     CPU.ExecuteSingleInstruction(Instruction);
-
-    EXPECT_EQ(CPU.GetRegister(Register::R1), 0xABCD);
+    EXPECT_EQ(CPU.GetRegister(lce::Assembler::Register::R2), 0xFACE);
 }
 
-TEST_F(TestCPU, TestMOVRegImm)
+TEST_F(TestCPU, TestMovRegOneByteImm)
 {
-    uint8_t Instruction[] = { 0b00010000, 0xFE, 0xCA }; // mov R0, 0xCAFE
-    CPU.ExecuteSingleInstruction(Instruction);
+    uint8_t Instruction[] = { 0b00000100, 0b10001000, 0x1F }; // mov r1, 0x1F
 
-    EXPECT_EQ(CPU.GetRegister(Register::R0), 0xCAFE);
+    CPU.ExecuteSingleInstruction(Instruction);
+    EXPECT_EQ(CPU.GetRegister(lce::Assembler::Register::R1), 0x1F);
 }
 
-TEST_F(TestCPU, TestMOVRegImmAddr)
+TEST_F(TestCPU, TestMovRegTwoByteImm)
 {
-    Memory->Write(0x0077, 0xCE);
-    Memory->Write(0x0078, 0xBB);
+    uint8_t Instruction[] = { 0b00000100, 0b11001000, 0xCE, 0xFA }; // mov r1, 0x1F
 
-    uint8_t Instruction[] = { 0b00011001, 0x77, 0x80 }; // mov R1, [0x8077]
     CPU.ExecuteSingleInstruction(Instruction);
-
-    EXPECT_EQ(CPU.GetRegister(Register::R1), 0xBBCE);
-}
-
-TEST_F(TestCPU, TestMOVRegRegAddr)
-{
-    Memory->Write(0x0077, 0xCE);
-    Memory->Write(0x0078, 0xA0);
-    CPU.SetRegister(Register::R0, 0x8077);
-
-    uint8_t Instruction[] = { 0b00100001, 0b00000000 };
-    CPU.ExecuteSingleInstruction(Instruction); // mov R1, [R0]
-
-    EXPECT_EQ(CPU.GetRegister(Register::R1), 0xA0CE);
-}
-
-TEST_F(TestCPU, TestMOVImmAddrReg)
-{
-    CPU.SetRegister(Register::R0, 0xB0C0);
-
-    uint8_t Instruction[] = { 0b00101000, 0x77, 0x80 }; // mov [0x8077], R0
-    CPU.ExecuteSingleInstruction(Instruction);
-
-    EXPECT_EQ(Memory->Read(0x0077), 0xC0);
-    EXPECT_EQ(Memory->Read(0x0078), 0xB0);
-}
-
-TEST_F(TestCPU, TestMOVRegAddrReg)
-{
-    CPU.SetRegister(Register::R0, 0xCAFE);
-    CPU.SetRegister(Register::R1, 0x8077);
-
-    uint8_t Instruction[] = { 0b00110001, 0b00000000 }; // mov [R1], R0
-    CPU.ExecuteSingleInstruction(Instruction);
-
-    EXPECT_EQ(Memory->Read(0x0077), 0xFE);
-    EXPECT_EQ(Memory->Read(0x0078), 0xCA);
+    EXPECT_EQ(CPU.GetRegister(lce::Assembler::Register::R1), 0xFACE);
 }

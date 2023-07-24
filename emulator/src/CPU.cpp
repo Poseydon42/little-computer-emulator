@@ -1,8 +1,10 @@
 #include "CPU.h"
 
 #include <cassert>
+#include <iterator>
 
 #include "ErrorReporting.h"
+#include "Instruction.h"
 
 #define TODO()                                                                                     \
     do                                                                                             \
@@ -13,45 +15,36 @@
 
 namespace lce::Emulator
 {
-    static EncodedOpcode ExtractOpcode(std::span<uint8_t> Bytes)
+    enum class OperandType
     {
-        assert(Bytes.size() > 0);
+        Register = 0b00,
+        OneByteImmediate = 0b10,
+        TwoByteImmediate = 0b11
+    };
 
-        uint32_t Opcode = Bytes[0] >> 3;
-
-        return static_cast<EncodedOpcode>(Opcode);
+    static Assembler::Opcode ExtractOpcode(uint8_t FirstByte)
+    {
+        return static_cast<Assembler::Opcode>((FirstByte >> 2) & 0x1F);
     }
 
-    // Returns register that is the first argument of the instruction
-    static Assembler::Register ExtractReg1(std::span<uint8_t> Bytes)
+    static OperandType ExtractFirstOperandType(uint8_t FirstByte)
     {
-        assert(Bytes.size() > 0);
-
-        uint8_t Register = Bytes[0] & 0x07;
-
-        return static_cast<Assembler::Register>(Register);
+        return static_cast<OperandType>(FirstByte & 0x03);
     }
 
-    static Assembler::Register ExtractReg2(std::span<uint8_t> Bytes)
+    static OperandType ExtractSecondOperandType(uint8_t SecondByte)
     {
-        assert(Bytes.size() >= 2);
-
-        uint8_t Register = Bytes[1] >> 5;
-
-        return static_cast<Assembler::Register>(Register);
+        return static_cast<OperandType>(SecondByte >> 6);
     }
 
-    // Returns immediate value that is the argument of the instruction
-    static uint16_t ExtractImm(std::span<uint8_t> Bytes)
+    static Assembler::Register ExtractFirstRegister(uint8_t SecondByte)
     {
-        assert(Bytes.size() >= 3);
+        return static_cast<Assembler::Register>((SecondByte >> 3) & 0x07);
+    }
 
-        auto Low = Bytes[1];
-        auto High = Bytes[2];
-
-        uint16_t Result = (High << 8) | Low;
-
-        return Result;
+    static Assembler::Register ExtractSecondRegister(uint8_t SecondByte)
+    {
+        return static_cast<Assembler::Register>(SecondByte & 0x07);
     }
 
     void CPU::Reset()
@@ -62,30 +55,16 @@ namespace lce::Emulator
 
     void CPU::ExecuteSingleInstruction(std::span<uint8_t> Bytes)
     {
-        auto Opcode = ExtractOpcode(Bytes);
+        assert(Bytes.size() > 0);
+
+        auto Opcode = ExtractOpcode(Bytes[0]);
         switch (Opcode)
         {
-        case EncodedOpcode::MovRegReg:
-            MovRegReg(Bytes);
-            break;
-        case EncodedOpcode::MovRegImm:
-            MovRegImm(Bytes);
-            break;
-        case EncodedOpcode::MovRegImmAddr:
-            MovRegImmAddr(Bytes);
-            break;
-        case EncodedOpcode::MovRegRegAddr:
-            MovRegRegAddr(Bytes);
-            break;
-        case EncodedOpcode::MovImmAddrReg:
-            MovImmAddrReg(Bytes);
-            break;
-        case EncodedOpcode::MovRegAddrReg:
-            MovRegAddrReg(Bytes);
+        case Assembler::Opcode::Mov:
+            ExecuteMov(Bytes.data(), Bytes.data() + Bytes.size_bytes());
             break;
         default:
             TODO();
-            break;
         }
     }
 
@@ -180,57 +159,48 @@ namespace lce::Emulator
         WriteByte(AbsoluteAddress + 1, High);
     }
 
-    void CPU::MovRegReg(std::span<uint8_t> Bytes)
-    {
-        auto Destination = ExtractReg1(Bytes);
-        auto Source = ExtractReg2(Bytes);
 
-        auto Value = GetRegister(Source);
-        SetRegister(Destination, Value);
+    uint16_t CPU::ReadRegister(Assembler::Register Register) const
+    {
+        auto RegisterIndex = static_cast<RegisterIndexUnderlyingType>(Register);
+        assert(RegisterIndex >= 0 && RegisterIndex < std::size(Registers));
+        return Registers[RegisterIndex];
     }
 
-    void CPU::MovRegImm(std::span<uint8_t> Bytes)
+    void CPU::WriteRegister(Assembler::Register Register, uint16_t Value)
     {
-        auto Register = ExtractReg1(Bytes);
-        auto Value = ExtractImm(Bytes);
-
-        SetRegister(Register, Value);
+        auto RegisterIndex = static_cast<RegisterIndexUnderlyingType>(Register);
+        assert(RegisterIndex >= 0 && RegisterIndex < std::size(Registers));
+        Registers[RegisterIndex] = Value;
     }
 
-    void CPU::MovRegImmAddr(std::span<uint8_t> Bytes)
+    void CPU::ExecuteMov(const uint8_t* Bytes, const uint8_t* EndOfStream)
     {
-        auto Register = ExtractReg1(Bytes);
-        auto Address = ExtractImm(Bytes);
+        assert(Bytes + 1 < EndOfStream); // Mov is at least 2 bytes long
 
-        auto Value = ReadWord(Address);
-        SetRegister(Register, Value);
-    }
+        auto FirstOperandType = ExtractFirstOperandType(Bytes[0]);
+        auto SecondOperandType = ExtractSecondOperandType(Bytes[1]);
 
-    void CPU::MovRegRegAddr(std::span<uint8_t> Bytes)
-    {
-        auto Destination = ExtractReg1(Bytes);
-        auto Source = ExtractReg2(Bytes);
+        uint16_t Value = 0;
+        if (SecondOperandType == OperandType::Register)
+        {
+            auto SourceRegister = ExtractSecondRegister(Bytes[1]);
+            Value = ReadRegister(SourceRegister);
+        }
+        else if (SecondOperandType == OperandType::OneByteImmediate)
+        {
+            assert(Bytes + 2 < EndOfStream);
+            Value = Bytes[2];
+        }
+        else if (SecondOperandType == OperandType::TwoByteImmediate)
+        {
+            assert(Bytes + 3 < EndOfStream);
+            Value = Bytes[2] | (Bytes[3] << 8);
+        }
 
-        auto Value = ReadWord(GetRegister(Source));
-        SetRegister(Destination, Value);
-    }
+        assert(FirstOperandType == OperandType::Register);
+        auto DestRegister = ExtractFirstRegister(Bytes[1]);
 
-    void CPU::MovImmAddrReg(std::span<uint8_t> Bytes)
-    {
-        auto Source = ExtractReg1(Bytes);
-        auto Destination = ExtractImm(Bytes);
-
-        auto Value = GetRegister(Source);
-        WriteWord(Destination, Value);
-    }
-
-    void CPU::MovRegAddrReg(std::span<uint8_t> Bytes)
-    {
-        auto Destination = ExtractReg1(Bytes);
-        auto Source = ExtractReg2(Bytes);
-
-        auto Value = GetRegister(Source);
-        auto Address = GetRegister(Destination);
-        WriteWord(Address, Value);
+        WriteRegister(DestRegister, Value);
     }
 } // namespace lce::Emulator
