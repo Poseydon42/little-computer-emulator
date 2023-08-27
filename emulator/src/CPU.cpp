@@ -15,6 +15,8 @@
 
 namespace lce::Emulator
 {
+    static constexpr uint8_t EncodedNOP = 0x54;
+
     enum class OperandType
     {
         Register = 0b00,
@@ -49,7 +51,7 @@ namespace lce::Emulator
 
     void CPU::Reset()
     {
-        for (auto& Register : Registers)
+        for (auto& Register : m_Registers)
             Register = 0;
     }
 
@@ -68,11 +70,23 @@ namespace lce::Emulator
         }
     }
 
+    void CPU::Run(uint16_t StartAddress)
+    {
+        m_IP = StartAddress;
+
+        while (!m_IsHalted)
+        {
+            // NOTE: instructions are at most 4 bytes, so we can fetch 4 bytes or fewer and pass them to the instruction handler
+            uint8_t Bytes[4] = { ReadByteOr(m_IP, EncodedNOP), ReadByteOr(m_IP + 1, EncodedNOP), ReadByteOr(m_IP + 2, EncodedNOP), ReadByteOr(m_IP + 3, EncodedNOP) };
+            ExecuteSingleInstruction(Bytes);
+        }
+    }
+
     bool CPU::AddMemoryBlock(std::unique_ptr<MemoryBlock> NewBlock, uint16_t StartAddress)
     {
         // Check that there is no overlap with existing memory blocks
         auto EndAddress = StartAddress + NewBlock->Size() - 1; // Last byte that belongs to current memory block
-        for (const auto& Block : MemoryBlocks)
+        for (const auto& Block : m_MemoryBlocks)
         {
             auto CurrentBlockStartAddress = Block.first;
             auto CurrentBlockEndAddress = CurrentBlockStartAddress + Block.second->Size() - 1;
@@ -85,23 +99,32 @@ namespace lce::Emulator
             }
         }
 
-        MemoryBlocks.emplace_back(StartAddress, std::move(NewBlock));
+        m_MemoryBlocks.emplace_back(StartAddress, std::move(NewBlock));
         return true;
     }
 
     uint16_t CPU::GetRegister(Assembler::Register Register) const
     {
-        return Registers[static_cast<RegisterIndexUnderlyingType>(Register)];
+        return m_Registers[static_cast<RegisterIndexUnderlyingType>(Register)];
     }
 
     void CPU::SetRegister(Assembler::Register Register, uint16_t Value)
     {
-        Registers[static_cast<RegisterIndexUnderlyingType>(Register)] = Value;
+        m_Registers[static_cast<RegisterIndexUnderlyingType>(Register)] = Value;
+    }
+
+    std::string CPU::SerializeState() const
+    {
+        return fmt::format("ip: {:#06x}; r1: {:#06x}; r2: {:#06x}; r3: {:#06x}; rsp: {:#06x}; rfl: {:#06x}; halted: {}",
+                           m_IP, ReadRegister(Assembler::Register::R0), ReadRegister(Assembler::Register::R1),
+                           ReadRegister(Assembler::Register::R2), ReadRegister(Assembler::Register::R3),
+                           ReadRegister(Assembler::Register::RSP), ReadRegister(Assembler::Register::RFL),
+                           m_IsHalted ? "true" : "false");
     }
 
     MemoryBlock* CPU::FindMemoryBlock(uint16_t AbsoluteAddress, uint16_t& StartAddress) const
     {
-        for (const auto& Block : MemoryBlocks)
+        for (const auto& Block : m_MemoryBlocks)
         {
             if (Block.first <= AbsoluteAddress && Block.first + Block.second->Size() > AbsoluteAddress)
             {
@@ -125,6 +148,16 @@ namespace lce::Emulator
         }
 
         return Block->Read(AbsoluteAddress - StartAddress);
+    }
+
+    uint8_t CPU::ReadByteOr(uint16_t AbsoluteAddress, uint8_t Fallback) const
+    {
+        uint16_t StartAddress;
+        auto* Block = FindMemoryBlock(AbsoluteAddress, StartAddress);
+
+        if (Block)
+            return Block->Read(AbsoluteAddress - StartAddress);
+        return Fallback;
     }
 
     uint16_t CPU::ReadWord(uint16_t AbsoluteAddress) const
@@ -163,15 +196,15 @@ namespace lce::Emulator
     uint16_t CPU::ReadRegister(Assembler::Register Register) const
     {
         auto RegisterIndex = static_cast<RegisterIndexUnderlyingType>(Register);
-        assert(RegisterIndex >= 0 && RegisterIndex < std::size(Registers));
-        return Registers[RegisterIndex];
+        assert(RegisterIndex >= 0 && RegisterIndex < std::size(m_Registers));
+        return m_Registers[RegisterIndex];
     }
 
     void CPU::WriteRegister(Assembler::Register Register, uint16_t Value)
     {
         auto RegisterIndex = static_cast<RegisterIndexUnderlyingType>(Register);
-        assert(RegisterIndex >= 0 && RegisterIndex < std::size(Registers));
-        Registers[RegisterIndex] = Value;
+        assert(RegisterIndex >= 0 && RegisterIndex < std::size(m_Registers));
+        m_Registers[RegisterIndex] = Value;
     }
 
     void CPU::ExecuteMov(const uint8_t* Bytes, const uint8_t* EndOfStream)

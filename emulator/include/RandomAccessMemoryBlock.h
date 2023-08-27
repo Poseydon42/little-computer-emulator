@@ -19,6 +19,6 @@ namespace lce::Emulator
         virtual uint16_t Size() const override;
 
     private:
-        std::vector<uint8_t> Memory;
+        std::vector<uint8_t> m_Memory;
     };
 }
